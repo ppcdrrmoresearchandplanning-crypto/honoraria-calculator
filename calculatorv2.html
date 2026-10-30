@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DBM Honoraria Calculator (BC 2007-1 & Third Tranche)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+      body { background-color: white !important; font-size: 12pt; }
+      .shadow-xl, .shadow-lg, .shadow-md { box-shadow: none !important; }
+      .border { border-color: #000 !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+
+  <header class="bg-indigo-900 text-white shadow-lg no-print">
+    <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid fa-calculator text-3xl text-indigo-300"></i>
+        <div>
+          <h1 class="text-2xl font-bold">DBM Honoraria Calculator</h1>
+          <p class="text-xs text-indigo-200">DBM Budget Circular No. 2007-1 & Third Tranche Schedule</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2 text-xs bg-indigo-800 px-3 py-2 rounded-lg border border-indigo-700">
+        <i class="fa-solid fa-file-invoice text-amber-400"></i>
+        <span>Standard Ceiling Baseline: <strong>SG-29 Step 1 (₱187,531.00)</strong></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LEFT COLUMN: INPUT CONTROLS -->
+      <div class="lg:col-span-5 space-y-6 no-print">
+        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200">
+          <h2 class="text-lg font-semibold text-slate-800 mb-4 pb-2 border-b flex items-center justify-between">
+            <span><i class="fa-solid fa-sliders text-indigo-600 mr-2"></i>Parameters</span>
+            <button onclick="resetDefaults()" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Clear All</button>
+          </h2>
+
+          <!-- Role Selection -->
+          <div class="mb-4">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Speaker Role / Designation</label>
+            <select id="role" onchange="calculate()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="">-- Select Role --</option>
+              <option value="lecturer">Lecturer / Resource Person</option>
+              <option value="coordinator">Coordinator</option>
+              <option value="facilitator">Facilitator</option>
+            </select>
+          </div>
+
+          <!-- Formula Method Toggle -->
+          <div class="mb-4">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Formula Precision Mode</label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="flex items-center p-2.5 border rounded-lg cursor-pointer text-xs hover:bg-slate-50">
+                <input type="radio" name="formulaMode" value="exact" checked onchange="calculate()" class="text-indigo-600">
+                <span class="ml-2 font-medium text-slate-700">Exact Hourly<br><span class="text-[10px] text-slate-500">(2 × Hourly × 2T)</span></span>
+              </label>
+              <label class="flex items-center p-2.5 border rounded-lg cursor-pointer text-xs hover:bg-slate-50">
+                <input type="radio" name="formulaMode" value="simplified" onchange="calculate()" class="text-indigo-600">
+                <span class="ml-2 font-medium text-slate-700">Simplified Factor<br><span class="text-[10px] text-slate-500">(0.023 × MSR × T)</span></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Lecturer Salary (MSRmin) -->
+          <div class="mb-4">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Resource Person Salary Grade (MSR<sub>min</sub>)</label>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+              <div>
+                <span class="text-[10px] text-slate-500 block">Salary Grade</span>
+                <select id="minSg" onchange="updateMinSalaryFromSg()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs">
+                </select>
+              </div>
+              <div>
+                <span class="text-[10px] text-slate-500 block">Step Increment</span>
+                <select id="minStep" onchange="updateMinSalaryFromSg()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs">
+                </select>
+              </div>
+            </div>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold text-sm">₱</span>
+              <input type="number" id="msrMin" oninput="calculate()" placeholder="e.g. 42178" class="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">Monthly Salary Rate of Speaker</p>
+          </div>
+
+          <!-- Maximum Salary Cap (MSRmax) -->
+          <div class="mb-4">
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Maximum Ceiling Cap (MSR<sub>max</sub>)</label>
+              <button onclick="syncCapToLecturer()" class="text-[10px] text-indigo-600 hover:underline">Match Speaker SG</button>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+              <div>
+                <span class="text-[10px] text-slate-500 block">Cap SG</span>
+                <select id="maxSg" onchange="updateMaxSalaryFromSg()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs">
+                </select>
+              </div>
+              <div>
+                <span class="text-[10px] text-slate-500 block">Cap Step</span>
+                <select id="maxStep" onchange="updateMaxSalaryFromSg()" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs">
+                </select>
+              </div>
+            </div>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold text-sm">₱</span>
+              <input type="number" id="msrMax" oninput="calculate()" placeholder="e.g. 187531" class="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">DBM Ceiling Cap Baseline</p>
+          </div>
+
+          <!-- Actual Hours & Participants -->
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Actual Hours (T)</label>
+              <input type="number" id="hours" oninput="calculate()" placeholder="e.g. 8" min="0.5" step="0.5" class="w-full p-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <p class="text-[10px] text-slate-500 mt-0.5">+ Equal Prep Time included</p>
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Participants (N)</label>
+              <input type="number" id="pax" oninput="calculate()" placeholder="e.g. 50" min="1" class="w-full p-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <p class="text-[10px] text-slate-500 mt-0.5">Base cap: 50 pax</p>
+            </div>
+          </div>
+
+          <!-- Presets -->
+          <div>
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Sample Presets</label>
+            <div class="flex flex-wrap gap-1">
+              <button onclick="loadPreset(15, 1, 8, 50)" class="px-2 py-1 bg-slate-100 hover:bg-indigo-50 text-slate-700 text-xs rounded border">SG-15 (8h / 50pax)</button>
+              <button onclick="loadPreset(24, 1, 16, 75)" class="px-2 py-1 bg-slate-100 hover:bg-indigo-50 text-slate-700 text-xs rounded border">SG-24 (16h / 75pax)</button>
+              <button onclick="loadPreset(29, 1, 4, 120)" class="px-2 py-1 bg-slate-100 hover:bg-indigo-50 text-slate-700 text-xs rounded border">SG-29 (4h / 120pax)</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: COMPUTATION DISPLAY & BREAKDOWN -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 no-print">
+          <div class="bg-white rounded-xl shadow-md p-5 border-t-4 border-emerald-500">
+            <span class="text-xs font-bold uppercase text-slate-500">Minimum Allowable Rate</span>
+            <div class="text-3xl font-extrabold text-emerald-600 my-1" id="minDisplay">₱0.00</div>
+            <p class="text-xs text-slate-600" id="minSubtext">Enter inputs to calculate minimum rate</p>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-md p-5 border-t-4 border-indigo-600">
+            <span class="text-xs font-bold uppercase text-slate-500">Maximum Ceiling Rate</span>
+            <div class="text-3xl font-extrabold text-indigo-600 my-1" id="maxDisplay">₱0.00</div>
+            <p class="text-xs text-slate-600" id="maxSubtext">Enter inputs to calculate ceiling rate</p>
+          </div>
+        </div>
+
+        <!-- Breakdown Panel -->
+        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 no-print">
+          <h3 class="text-md font-bold text-slate-800 mb-3 pb-2 border-b flex items-center justify-between">
+            <span><i class="fa-solid fa-list-check text-indigo-600 mr-2"></i>Computation Breakdown</span>
+            <button onclick="window.print()" class="px-3 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700">
+              <i class="fa-solid fa-print mr-1"></i>Print Voucher
+            </button>
+          </h3>
+
+          <div class="space-y-3 text-xs">
+            <div class="flex justify-between py-1 border-b border-slate-100">
+              <span class="text-slate-600">Base Hourly Rate (MSR ÷ 176 hrs):</span>
+              <span class="font-semibold text-slate-800" id="hourlyBreakdown">₱0.00 / hr</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-100">
+              <span class="text-slate-600">Minimum Hourly Honorarium (2 × Hourly Rate):</span>
+              <span class="font-semibold text-slate-800" id="minHonorariumHourlyBreakdown">₱0.00 / hr</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-100">
+              <span class="text-slate-600">Total Hours Payable (Actual T + Prep T = 2 × T):</span>
+              <span class="font-semibold text-slate-800" id="hoursPayableBreakdown">0 hrs</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-100">
+              <span class="text-slate-600">Participant Scaling Multiplier (N / 50):</span>
+              <span class="font-semibold text-slate-800" id="paxMultiplierBreakdown">1.0000</span>
+            </div>
+            <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mt-2">
+              <div class="font-bold text-indigo-900 mb-1">Grant Range Guidance</div>
+              <p class="text-indigo-800" id="guidanceText">
+                Enter parameters to display allowable rate range.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRINTABLE VOUCHER (HIDDEN ON SCREEN, VISIBLE ON PRINT) -->
+        <div class="bg-white rounded-xl shadow-lg p-8 border border-slate-300 hidden print-only">
+          <div class="text-center border-b pb-4 mb-6">
+            <h2 class="text-lg font-bold uppercase tracking-wider text-slate-900">HONORARIA COMPUTATION MEMORANDUM / VOUCHER ATTACHMENT</h2>
+            <p class="text-xs text-slate-600">In Compliance with DBM Budget Circular No. 2007-1 & Third Tranche Schedule</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 text-xs mb-6">
+            <div>
+              <p><strong>Designation/Role:</strong> <span id="vRole">--</span></p>
+              <p><strong>Speaker Salary Rate (MSR<sub>min</sub>):</strong> ₱<span id="vMsrMin">0.00</span> (<span id="vMinSgStep">Unspecified</span>)</p>
+              <p><strong>Cap Ceiling Rate (MSR<sub>max</sub>):</strong> ₱<span id="vMsrMax">0.00</span> (<span id="vMaxSgStep">Unspecified</span>)</p>
+            </div>
+            <div>
+              <p><strong>Actual Lecture Hours (T):</strong> <span id="vHours">0</span> Hours</p>
+              <p><strong>Total Training Participants (N):</strong> <span id="vPax">0</span> Participants</p>
+              <p><strong>Pax Multiplier Factor:</strong> <span id="vPaxFactor">1.0000</span></p>
+            </div>
+          </div>
+
+          <table class="w-full text-xs text-left border-collapse border border-slate-300 mb-6">
+            <thead>
+              <tr class="bg-slate-100 border-b border-slate-300">
+                <th class="p-2 border-r border-slate-300">Computation Level</th>
+                <th class="p-2 border-r border-slate-300">Formula Breakdown</th>
+                <th class="p-2 text-right">Computed Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-slate-300">
+                <td class="p-2 border-r border-slate-300 font-medium">Minimum Grant Rate</td>
+                <td class="p-2 border-r border-slate-300" id="vMinFormula">-</td>
+                <td class="p-2 text-right font-bold text-slate-900" id="vMinTotal">₱0.00</td>
+              </tr>
+              <tr>
+                <td class="p-2 border-r border-slate-300 font-medium">Maximum Ceiling Rate</td>
+                <td class="p-2 border-r border-slate-300" id="vMaxFormula">-</td>
+                <td class="p-2 text-right font-bold text-slate-900" id="vMaxTotal">₱0.00</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="border-t pt-4 text-[11px] text-slate-600 space-y-1">
+            <p><strong>Certification:</strong> Computed pursuant to Section 4.0 (Guidelines) and Section 4.3 (Participant Scaling) of DBM BC No. 2007-1.</p>
+            <p><strong>Salary Matrix Baseline:</strong> Third Tranche Monthly Salary Schedule for Civilian Personnel.</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-8 mt-12 text-xs">
+            <div>
+              <p class="border-b border-slate-400 pb-1 font-bold">Prepared By:</p>
+              <p class="mt-6 font-semibold">Signature over Printed Name</p>
+              <p class="text-slate-500">HR / Training Coordinator</p>
+            </div>
+            <div>
+              <p class="border-b border-slate-400 pb-1 font-bold">Approved By:</p>
+              <p class="mt-6 font-semibold">Signature over Printed Name</p>
+              <p class="text-slate-500">Agency Head / Authorized Official</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    const THIRD_TRANCHE_SALARY_MATRIX = {
+      1:  [14634, 14730, 14849, 14968, 15089, 15211, 15333, 15456],
+      2:  [15522, 15636, 15752, 15869, 15986, 16103, 16223, 16342],
+      3:  [16486, 16610, 16732, 16856, 16982, 17106, 17234, 17360],
+      4:  [17506, 17636, 17767, 17898, 18031, 18163, 18298, 18433],
+      5:  [18581, 18720, 18858, 18998, 19137, 19280, 19423, 19565],
+      6:  [19716, 19862, 20009, 20158, 20307, 20456, 20609, 20761],
+      7:  [20914, 21069, 21224, 21382, 21539, 21699, 21859, 22022],
+      8:  [22423, 22627, 22832, 23038, 23246, 23456, 23668, 23883],
+      9:  [24329, 24523, 24720, 24917, 25117, 25318, 25521, 25725],
+      10: [26917, 27131, 27347, 27565, 27786, 28007, 28230, 28456],
+      11: [31705, 31820, 32109, 32401, 32697, 32998, 33302, 33611],
+      12: [33947, 34069, 34357, 34648, 34943, 35242, 35544, 35850],
+      13: [36125, 36283, 36599, 36919, 37244, 37572, 37904, 38241],
+      14: [38764, 39141, 39523, 39910, 40300, 40696, 41097, 41503],
+      15: [42178, 42594, 43015, 43442, 43874, 44310, 44753, 45202],
+      16: [45694, 46152, 46615, 47084, 47559, 48040, 48528, 49020],
+      17: [49562, 50066, 50576, 51092, 51614, 52144, 52678, 53221],
+      18: [53818, 54371, 54933, 55499, 56075, 56657, 57246, 57842],
+      19: [59153, 59966, 60793, 61632, 62486, 63353, 64236, 65132],
+      20: [66052, 66970, 67904, 68853, 69818, 70772, 71727, 72671],
+      21: [73303, 74337, 75388, 76456, 77542, 78645, 79692, 80831],
+      22: [81796, 82963, 84151, 85356, 86582, 87746, 89011, 90295],
+      23: [91306, 92622, 93962, 95330, 96823, 98341, 99883, 101318],
+      24: [102603, 104209, 105841, 107500, 109185, 110898, 112533, 114301],
+      25: [116643, 118469, 120326, 122212, 124131, 126079, 128061, 130073],
+      26: [131807, 133870, 135968, 138100, 140268, 142469, 144707, 146983],
+      27: [148940, 151273, 153644, 155906, 158353, 160235, 162752, 165310],
+      28: [167129, 169752, 172418, 174797, 177545, 180339, 182660, 185537],
+      29: [187531, 190482, 193480, 196528, 199624, 202005, 205191, 208430],
+      30: [210718, 214038, 217207, 220425, 223691, 227224, 230595, 234240],
+      31: [300961, 306691, 312532, 318182, 323938, 329989, 336092, 342310],
+      32: [356237, 363257, 370418, 377359, 384805, 392400, 400150, 408055],
+      33: [449157, 462329, 462329, 462329, 462329, 462329, 462329, 462329]
+    };
+
+    function initDropdowns() {
+      const minSg = document.getElementById('minSg');
+      const maxSg = document.getElementById('maxSg');
+      const minStep = document.getElementById('minStep');
+      const maxStep = document.getElementById('maxStep');
+
+      minSg.innerHTML = '<option value="">-- Select SG --</option>';
+      maxSg.innerHTML = '<option value="">-- Select SG --</option>';
+      minStep.innerHTML = '<option value="">-- Select Step --</option>';
+      maxStep.innerHTML = '<option value="">-- Select Step --</option>';
+
+      for (let sg = 1; sg <= 33; sg++) {
+        minSg.add(new Option(`SG ${sg}`, sg));
+        maxSg.add(new Option(`SG ${sg}`, sg));
+      }
+
+      for (let step = 1; step <= 8; step++) {
+        minStep.add(new Option(`Step ${step}`, step));
+        maxStep.add(new Option(`Step ${step}`, step));
+      }
+    }
+
+    function updateMinSalaryFromSg() {
+      const sgVal = document.getElementById('minSg').value;
+      const stepVal = document.getElementById('minStep').value;
+      if (sgVal && stepVal) {
+        const sg = parseInt(sgVal);
+        const step = parseInt(stepVal);
+        const salary = THIRD_TRANCHE_SALARY_MATRIX[sg][step - 1];
+        document.getElementById('msrMin').value = salary;
+      }
+      calculate();
+    }
+
+    function updateMaxSalaryFromSg() {
+      const sgVal = document.getElementById('maxSg').value;
+      const stepVal = document.getElementById('maxStep').value;
+      if (sgVal && stepVal) {
+        const sg = parseInt(sgVal);
+        const step = parseInt(stepVal);
+        const salary = THIRD_TRANCHE_SALARY_MATRIX[sg][step - 1];
+        document.getElementById('msrMax').value = salary;
+      }
+      calculate();
+    }
+
+    function syncCapToLecturer() {
+      const minSgVal = document.getElementById('minSg').value;
+      const minStepVal = document.getElementById('minStep').value;
+      if (minSgVal) document.getElementById('maxSg').value = minSgVal;
+      if (minStepVal) document.getElementById('maxStep').value = minStepVal;
+      updateMaxSalaryFromSg();
+    }
+
+    function formatPHP(amount) {
+      return '₱' + Number(amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function calculate() {
+      const msrMinVal = document.getElementById('msrMin').value;
+      const msrMaxVal = document.getElementById('msrMax').value;
+      const hoursVal = document.getElementById('hours').value;
+      const paxVal = document.getElementById('pax').value;
+
+      const msrMin = parseFloat(msrMinVal) || 0;
+      const msrMax = parseFloat(msrMaxVal) || 0;
+      const T = parseFloat(hoursVal) || 0;
+      const pax = parseInt(paxVal) || 0;
+
+      const modeRadio = document.querySelector('input[name="formulaMode"]:checked');
+      const mode = modeRadio ? modeRadio.value : 'exact';
+
+      const paxMultiplier = pax > 50 ? (pax / 50) : (pax > 0 ? 1.0 : 0);
+
+      let minTotal = 0;
+      let maxTotal = 0;
+      let minHourly = msrMin / 176;
+      let minHonorariumHourly = minHourly * 2;
+
+      if (T > 0 && pax > 0) {
+        if (mode === 'exact') {
+          minTotal = (2) * minHourly * (2 * T) * paxMultiplier;
+          maxTotal = (2) * (msrMax / 176) * (2 * T) * paxMultiplier;
+        } else {
+          minTotal = 0.023 * msrMin * T * paxMultiplier;
+          maxTotal = 0.023 * msrMax * T * paxMultiplier;
+        }
+      }
+
+      document.getElementById('minDisplay').innerText = formatPHP(minTotal);
+      document.getElementById('maxDisplay').innerText = formatPHP(maxTotal);
+
+      const minSgVal = document.getElementById('minSg').value;
+      const minStepVal = document.getElementById('minStep').value;
+      const maxSgVal = document.getElementById('maxSg').value;
+      const maxStepVal = document.getElementById('maxStep').value;
+
+      document.getElementById('minSubtext').innerText = minSgVal ? `Based on Speaker Salary (SG-${minSgVal} Step ${minStepVal || 1})` : 'Enter speaker salary inputs';
+      document.getElementById('maxSubtext').innerText = maxSgVal ? `Based on SG-${maxSgVal} Step ${maxStepVal || 1} Cap Baseline` : 'Enter ceiling salary inputs';
+
+      document.getElementById('hourlyBreakdown').innerText = formatPHP(minHourly) + ' / hr';
+      document.getElementById('minHonorariumHourlyBreakdown').innerText = formatPHP(minHonorariumHourly) + ' / hr';
+      document.getElementById('hoursPayableBreakdown').innerText = `${2 * T} hrs (${T}h actual + ${T}h prep)`;
+      document.getElementById('paxMultiplierBreakdown').innerText = `${paxMultiplier.toFixed(4)} (${pax} participants)`;
+
+      if (minTotal > 0 || maxTotal > 0) {
+        document.getElementById('guidanceText').innerHTML = 
+          `Agency authority may approve honoraria payments between <strong>${formatPHP(minTotal)}</strong> and <strong>${formatPHP(maxTotal)}</strong> depending on subject difficulty, speaker qualifications, and participant level.`;
+      } else {
+        document.getElementById('guidanceText').innerText = 'Enter parameters to display allowable rate range.';
+      }
+
+      const roleElem = document.getElementById('role');
+      const selectedRoleText = roleElem.selectedIndex >= 0 ? roleElem.options[roleElem.selectedIndex].text : '--';
+
+      document.getElementById('vRole').innerText = selectedRoleText !== '-- Select Role --' ? selectedRoleText : '--';
+      document.getElementById('vMsrMin').innerText = Number(msrMin).toLocaleString('en-PH', {minimumFractionDigits: 2});
+      document.getElementById('vMsrMax').innerText = Number(msrMax).toLocaleString('en-PH', {minimumFractionDigits: 2});
+      document.getElementById('vMinSgStep').innerText = minSgVal ? `SG-${minSgVal} Step ${minStepVal || 1}` : 'Unspecified';
+      document.getElementById('vMaxSgStep').innerText = maxSgVal ? `SG-${maxSgVal} Step ${maxStepVal || 1}` : 'Unspecified';
+      document.getElementById('vHours').innerText = T;
+      document.getElementById('vPax').innerText = pax;
+      document.getElementById('vPaxFactor').innerText = paxMultiplier.toFixed(4);
+
+      if (mode === 'exact') {
+        document.getElementById('vMinFormula').innerText = `2 × (₱${msrMin.toLocaleString()}/176) × 2(${T}h) × ${paxMultiplier.toFixed(2)}`;
+        document.getElementById('vMaxFormula').innerText = `2 × (₱${msrMax.toLocaleString()}/176) × 2(${T}h) × ${paxMultiplier.toFixed(2)}`;
+      } else {
+        document.getElementById('vMinFormula').innerText = `0.023 × ₱${msrMin.toLocaleString()} × ${T}h × ${paxMultiplier.toFixed(2)}`;
+        document.getElementById('vMaxFormula').innerText = `0.023 × ₱${msrMax.toLocaleString()} × ${T}h × ${paxMultiplier.toFixed(2)}`;
+      }
+
+      document.getElementById('vMinTotal').innerText = formatPHP(minTotal);
+      document.getElementById('vMaxTotal').innerText = formatPHP(maxTotal);
+    }
+
+    function loadPreset(sg, step, hours, pax) {
+      document.getElementById('role').value = 'lecturer';
+      document.getElementById('minSg').value = sg;
+      document.getElementById('minStep').value = step;
+      document.getElementById('maxSg').value = 29;
+      document.getElementById('maxStep').value = 1;
+      document.getElementById('hours').value = hours;
+      document.getElementById('pax').value = pax;
+      updateMinSalaryFromSg();
+      updateMaxSalaryFromSg();
+    }
+
+    function resetDefaults() {
+      document.getElementById('role').value = '';
+      document.getElementById('minSg').value = '';
+      document.getElementById('minStep').value = '';
+      document.getElementById('maxSg').value = '';
+      document.getElementById('maxStep').value = '';
+      document.getElementById('msrMin').value = '';
+      document.getElementById('msrMax').value = '';
+      document.getElementById('hours').value = '';
+      document.getElementById('pax').value = '';
+      calculate();
+    }
+
+    window.onload = function() {
+      initDropdowns();
+      calculate();
+    };
+  </script>
+</body>
+</html>
